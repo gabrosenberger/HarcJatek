@@ -3,7 +3,7 @@ import java.util.Random;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws EleteroKivetel {
         Jatek jatek = new Jatek();
         jatek.indit();
     }
@@ -23,12 +23,17 @@ class Jatek {
         this.varazslo = new Varazslo(veletlen.nextInt(6) + 4); // d6+3
     }
 
-    public void indit() {
-        while (harcos.aktiv() && varazslo.aktiv()) {
-            tablaReset();
-            mozgat();
-            tablatIr();
+    public void indit() throws EleteroKivetel {
+        try {
+            while (harcos.aktiv() && varazslo.aktiv()) {
+                tablaReset();
+                mozgat();
+                tablatIr();
+            }
+        } catch (EleteroKivetel e) {
+            System.out.println(e.toString());
         }
+
     }
     private void tablaReset(){
         for (int i = 0; i < tablaHossz; i++) {
@@ -91,14 +96,26 @@ class Mezo {
     }
 }
 
-abstract class Karakter {
+interface HarcKepes {
+    public int harc();
+}
+
+class EleteroKivetel extends Exception {
+    public EleteroKivetel(String uzenet) {
+        super(uzenet);
+    }
+}
+abstract class Karakter implements HarcKepes {
     protected int eletero;
 
     public Karakter(int eletero) {
         this.eletero = eletero;
     }
 
-    public boolean aktiv() {
+    public boolean aktiv() throws EleteroKivetel {
+        if (eletero < 1) {
+            throw new EleteroKivetel("A karakter életereje 1 alá esett!");
+        }
         return eletero > 0;
     }
 
