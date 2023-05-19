@@ -1,9 +1,17 @@
+import javax.swing.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 
 public class Main {
 
-    public static void main(String[] args) throws EleteroKivetel {
+    public static void main(String[] args) throws EleteroKivetel, FileNotFoundException {
         Jatek jatek = new Jatek();
         jatek.indit();
     }
@@ -12,29 +20,79 @@ public class Main {
 class Jatek {
     private int tablaHossz;
     private final Random veletlen = new Random();
-    private final Harcos harcos;
-    private final Varazslo varazslo;
+    private Harcos harcos;
+    private Varazslo varazslo;
     private Mezo[] tabla;
 
     public Jatek() {
         this.tablaHossz = 3;
         this.tabla = new Mezo[tablaHossz];
-        this.harcos = new Harcos(veletlen.nextInt(6) + 4); // d6+3
-        this.varazslo = new Varazslo(veletlen.nextInt(6) + 4); // d6+3
+        this.harcos = new Harcos(veletlen.nextInt(6) + 4);
+        this.varazslo = new Varazslo(veletlen.nextInt(6) + 4);
     }
 
-    public void indit() throws EleteroKivetel {
+    public void indit() throws EleteroKivetel, FileNotFoundException {
         try {
-            while (harcos.aktiv() && varazslo.aktiv()) {
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Be akarsz tölteni mentést? (igen/nem)");
+            String input = scanner.nextLine().toLowerCase();
+
+            if (input.equals("igen")) {
+                String[] kezdetiErtekStringArray = kezdetiErtekBetolto().split(";");
+                if (kezdetiErtekStringArray.length != 2) {
+                    System.out.println("Érvénytelen mentés file!");
+                } else {
+                    int[] intArray = new int[kezdetiErtekStringArray.length];
+                    for(int i = 0; i < kezdetiErtekStringArray.length; i++) {
+                        intArray[i] = Integer.parseInt(kezdetiErtekStringArray[i]);
+                        this.harcos = new Harcos(intArray[0]);
+                        this.varazslo = new Varazslo(intArray[1]);
+                    }
+                }
+            } else if (!input.equals("nem")) {
+                System.out.println("Érvénytelen válasz, nincs betöltés!");
+            }
+
+            boolean kilep = false;
+            while (harcos.aktiv() && varazslo.aktiv() && !kilep) {
                 tablaReset();
                 mozgat();
                 tablatIr();
+                kilep = mentesKerdes();
             }
         } catch (EleteroKivetel e) {
             System.out.println(e.toString());
         }
 
     }
+
+    private boolean mentesKerdes() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Akarsz menteni és kilépni? (igen/nem)");
+        String input = scanner.nextLine().toLowerCase();
+
+        if (input.equals("igen")) {
+            allapotMentesFileba();
+            return true;
+        } else if (!input.equals("nem")) {
+            System.out.println("Érvénytelen válasz, nincs mentés!");
+        }
+        return false;
+    }
+
+    private void allapotMentesFileba(){
+        try {
+            JFileChooser fileChooser = new JFileChooser();
+            if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                java.io.File file = fileChooser.getSelectedFile();
+                var eleterok = harcos.eletero + ";" + varazslo.eletero;
+                Files.write(file.toPath(), eleterok.getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
     private void tablaReset(){
         for (int i = 0; i < tablaHossz; i++) {
             tabla[i] = new Mezo();
@@ -68,6 +126,21 @@ class Jatek {
 
         tabla[harcosPozicio].hozzaadKarakter(harcos);
         tabla[varazsloPozicio].hozzaadKarakter(varazslo);
+    }
+
+    private String kezdetiErtekBetolto(){
+        final JFileChooser fc = new JFileChooser();
+        int returnVal = fc.showOpenDialog(null);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File file = fc.getSelectedFile();
+            try (FileInputStream fis = new FileInputStream(file)) {
+                String vissza = new String(fis.readAllBytes());
+                return vissza;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return "";
     }
 }
 
@@ -137,7 +210,7 @@ class Harcos extends Karakter {
 
     @Override
     public int harc() {
-        eletero -= new Random().nextInt(6) + 1; // d6
+        eletero -= new Random().nextInt(6) + 1;
         return eletero;
     }
 
@@ -154,7 +227,7 @@ class Varazslo extends Karakter {
 
     @Override
     public int harc() {
-        eletero -= new Random().nextInt(6) + 1; // d6
+        eletero -= new Random().nextInt(6) + 1;
         return eletero;
     }
 
